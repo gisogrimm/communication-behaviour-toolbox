@@ -1,4 +1,14 @@
 function [t,vspstate,tovl] = get_turntakes( varargin )
+% get_turntakes - filter and classify turn takes
+%
+% [t,vspstate,tovl] = get_turntakes( t_start1, t_end1, t_start2, t_end2, ... )
+%
+% t_start : start times of speaking intervals
+% t_end : end times of speaking intervals
+%
+% t :
+% vspstate : sparse matrix of speaker activity with time stamps as first column
+% tovl :
   vspstate = [];
   Nspeaker = numel(varargin)/2;
   % collect times of all interlocutors:
@@ -26,10 +36,11 @@ function [t,vspstate,tovl] = get_turntakes( varargin )
       end
     end
   end
-  overlaps = find(prod(vspstate(:,2:end),2)>0);
-  tovl = [vspstate(overlaps,1),vspstate(overlaps+1,1)];
+  % find overlaps:
+  idx_ovl = find(sum(vspstate(:,2:end),2)>1);
+  tovl = [vspstate(idx_ovl,1),vspstate(idx_ovl+1,1)];
   % remove full overlaps (as in Petersen):
-  idx_fullovl = overlaps(any(vspstate(overlaps,2:end) & (1-vspstate(overlaps-1,2:end)) & (1-vspstate(overlaps+1,2:end)),2));
+  idx_fullovl = idx_ovl(any(vspstate(idx_ovl,2:end) & (1-vspstate(idx_ovl-1,2:end)) & (1-vspstate(idx_ovl+1,2:end)),2));
   vspstateovl = vspstate(unique([idx_fullovl;idx_fullovl+1]),:);
   vspstate(unique([idx_fullovl;idx_fullovl+1]),:) = [];
   % collect overlap take time stamps:

@@ -8,6 +8,8 @@ function [mVADout,t,vspstate,tovl] = vad2turns( vT, mVAD, maxgapdur, minsegmentd
         % value from Heldner2010
     end
     mVADout = zeros(size(mVAD));
+    %vNumSeaker = sum(mVAD,2);
+    %vOvl = (vNumSpeaker > 0);
     cArg = {};
     for ch=1:size(mVAD,2)
         act = mVAD(:,ch);
