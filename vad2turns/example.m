@@ -5,6 +5,11 @@ mVAD = readmatrix('group1/quiet/VAD.csv');
 % convert voice activity into the sparse matrix t_turns:
 [mVADsmooth,t_turns,vspstate,tovl] = vad2turns( vT, mVAD);
 
+% calculate median floor transfer offset times:
+idx_turns = find(diff(t_turns(:,3)) ~= 0);
+FTO = t_turns(idx_turns+1,1)-t_turns(idx_turns,2);
+median(FTO)
+
 % plot turns:
 figure
 mCol = colororder();

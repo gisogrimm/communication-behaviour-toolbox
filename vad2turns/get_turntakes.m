@@ -1,7 +1,7 @@
-function [t, vspstate, tovl] = get_turntakes(varargin)
+function [t, mSpeakerState, tovl] = get_turntakes(varargin)
 % GET_TURNTAKES Classify and filter turn-taking events from speaker intervals.
 %
-%   [t, vspstate, tovl] = get_turntakes(t_start1, t_end1, t_start2, t_end2, ...)
+%   [t, mSpeakerState, tovl] = get_turntakes(t_start1, t_end1, t_start2, t_end2, ...)
 %   processes the start and end times of speaking intervals for multiple
 %   speakers to classify turn-taking events and overlaps.
 %
@@ -12,7 +12,7 @@ function [t, vspstate, tovl] = get_turntakes(varargin)
 %   Outputs:
 %       t - Matrix of turn-taking events with columns:
 %           [start_time, end_time, speaker_id]
-%       vspstate - Sparse matrix indicating speaker activity over time
+%       mSpeakerState - Sparse matrix indicating speaker activity over time
 %       tovl - Matrix of overlap events with columns:
 %           [start_time, end_time, overlapping_speakers]
 %
@@ -25,7 +25,7 @@ function [t, vspstate, tovl] = get_turntakes(varargin)
 %       % Sample usage with two speakers
 %       t_start1 = [0, 2]; t_end1 = [1, 3];
 %       t_start2 = [0.5, 1.5]; t_end2 = [2, 3.5];
-%       [t, vspstate, tovl] = get_turntakes(t_start1, t_end1, t_start2, t_end2);
+%       [t, mSpeakerState, tovl] = get_turntakes(t_start1, t_end1, t_start2, t_end2);
 %
 %   See also: vad2turns, remove_gaps
 
@@ -36,7 +36,7 @@ function [t, vspstate, tovl] = get_turntakes(varargin)
     end
 
     % Initialize output variables
-    vspstate = [];
+    mSpeakerState = [];
     % Calculate the number of speakers based on input arguments
     Nspeaker = numel(varargin) / 2;
 
@@ -46,7 +46,7 @@ function [t, vspstate, tovl] = get_turntakes(varargin)
         tstart = varargin{2 * k_interlocutor - 1};
         tend = varargin{2 * k_interlocutor};
 
-        % Remove gaps as suggested by Eline Petersen 2023
+        % Remove gaps of up to one second as suggested by Eline Petersen 2023
         [tstart, tend] = remove_gaps(tstart, tend, 1);
 
         % Process each speaking interval
@@ -58,56 +58,68 @@ function [t, vspstate, tovl] = get_turntakes(varargin)
             state(2, k_interlocutor) = 0;
             % Combine time and state information
             state = [[tstart(k); tend(k)], state];
-            % Append to vspstate
-            vspstate(end + (1:2), 1:(Nspeaker + 1)) = state;
+            % Append to mSpeakerState
+            mSpeakerState(end + (1:2), 1:(Nspeaker + 1)) = state;
         end
     end
 
     % Sort the state sections by time
-    [tmp, idx] = sort(vspstate(:, 1));
-    vspstate = vspstate(idx, :);
+    [tmp, idx] = sort(mSpeakerState(:, 1));
+    mSpeakerState = mSpeakerState(idx, :);
 
     % Add boundaries at the beginning and end
-    vspstate = [zeros(1, 1 + Nspeaker); vspstate; zeros(1, 1 + Nspeaker)];
+    mSpeakerState = [zeros(1, 1 + Nspeaker); mSpeakerState; zeros(1, 1 + Nspeaker)];
 
     % Fill in missing states between sections
-    for k = 2:size(vspstate, 1)
+    for k = 2:size(mSpeakerState, 1)
         for kl = 1:Nspeaker
-            if vspstate(k, 1 + kl) < 0
-                vspstate(k, 1 + kl) = vspstate(k - 1, 1 + kl);
+            if mSpeakerState(k, 1 + kl) < 0
+                mSpeakerState(k, 1 + kl) = mSpeakerState(k - 1, 1 + kl);
             end
         end
     end
 
-    % Identify overlapping speech periods
-    idx_ovl = find(sum(vspstate(:, 2:end), 2) > 1);
-    tovl = [vspstate(idx_ovl, 1), vspstate(idx_ovl + 1, 1)];
-
+    % Identify overlapping speech periods, i.e., any interval in which
+    % more than one speaker is active
+    idx_ovl = find(sum(mSpeakerState(:, 2:end), 2) > 1);
+    tovl = [mSpeakerState(idx_ovl, 1), mSpeakerState(idx_ovl + 1, 1)];
+    
     % Remove full overlaps (as in Petersen's method)
-    idx_fullovl = idx_ovl(any(vspstate(idx_ovl, 2:end) & (1 - vspstate(idx_ovl - 1, 2:end)) & (1 - vspstate(idx_ovl + 1, 2:end)), 2));
-    vspstateovl = vspstate(unique([idx_fullovl; idx_fullovl + 1]), :);
-    vspstate(unique([idx_fullovl; idx_fullovl + 1]), :) = [];
+    idx_fullovl = [];
+    for k=idx_ovl'
+        is_ovl = true;
+        % someone is speaking already:
+        is_ovl = is_ovl & any(mSpeakerState(k,2:end) & mSpeakerState(k-1,2:end));
+        % the one(s) who are speaking before are also speaking after:
+        is_ovl = is_ovl & any(mSpeakerState(k-1,2:end) & mSpeakerState(k+1,2:end));
+        if( is_ovl )
+            idx_fullovl(end+1) = k;
+        end
+    end
+    %idx_fullovl = idx_ovl(any(mSpeakerState(idx_ovl, 2:end) & (1 - mSpeakerState(idx_ovl - 1, 2:end)) & (1 - mSpeakerState(idx_ovl + 1, 2:end)), 2));
+    mSpeakerStateovl = mSpeakerState(unique([idx_fullovl; idx_fullovl + 1]), :);
+    mSpeakerState(unique([idx_fullovl; idx_fullovl + 1]), :) = [];
 
     % Collect overlap take time stamps
-    idx = find(any(vspstateovl(1:end - 1, 2:end) & (1 - vspstateovl(2:end, 2:end)), 2));
-    spkmatovl = double(vspstateovl(idx, 2:end) & (1 - vspstateovl(idx + 1, 2:end)));
+    idx = find(any(mSpeakerStateovl(1:end - 1, 2:end) & (1 - mSpeakerStateovl(2:end, 2:end)), 2));
+    spkmatovl = double(mSpeakerStateovl(idx, 2:end) & (1 - mSpeakerStateovl(idx + 1, 2:end)));
     for k = 2:size(spkmatovl, 2)
         spkmatovl(:, k) = spkmatovl(:, k) * k;
     end
-    tovl = [vspstateovl(idx, 1), vspstateovl(idx + 1, 1), sum(spkmatovl, 2)];
+    tovl = [mSpeakerStateovl(idx, 1), mSpeakerStateovl(idx + 1, 1), sum(spkmatovl, 2)];
 
     % Collect turn take time stamps
-    idx = find(any(vspstate(2:end, 2:end) & (1 - vspstate(1:end - 1, 2:end)), 2)) + 1;
-    spkmat = double(vspstate(idx, 2:end) & (1 - vspstate(idx - 1, 2:end)));
+    idx = find(any(mSpeakerState(2:end, 2:end) & (1 - mSpeakerState(1:end - 1, 2:end)), 2)) + 1;
+    spkmat = double(mSpeakerState(idx, 2:end) & (1 - mSpeakerState(idx - 1, 2:end)));
     for k = 2:size(spkmat, 2)
         spkmat(:, k) = spkmat(:, k) * k;
     end
-    t = [vspstate(idx, 1), vspstate(idx + 1, 1), sum(spkmat, 2)];
+    t = [mSpeakerState(idx, 1), mSpeakerState(idx + 1, 1), sum(spkmat, 2)];
 
     % Adjust end times based on subsequent speaker activity
     for k = 1:size(t, 1)
         speaker = t(k, 3);
-        idx0 = find(vspstate(idx(k):end, speaker + 1) == 0, 1);
-        t(k, 2) = vspstate(idx(k) + idx0 - 1, 1);
+        idx0 = find(mSpeakerState(idx(k):end, speaker + 1) == 0, 1);
+        t(k, 2) = mSpeakerState(idx(k) + idx0 - 1, 1);
     end
 end
