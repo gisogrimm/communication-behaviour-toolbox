@@ -1,4 +1,4 @@
-function VAD = levels2vad( vL, varargin )
+function [VAD, threshold] = levels2vad( vL, fs, varargin )
 % levels2vad - Compute Voice Activity Detection (VAD) from level data
 %
 % Syntax:
@@ -12,6 +12,7 @@ function VAD = levels2vad( vL, varargin )
 % Inputs:
 %   vL          - Input level data. Can be a numeric array or a string
 %                 (see Note).
+%   fs          - Sampling rate of levels in Hz
 %   varargin    - Key-value pairs for configuration parameters; see
 %                 "levels2vad help" for details
 %
@@ -53,8 +54,10 @@ function VAD = levels2vad( vL, varargin )
   sHelp.mincontrib = 'minimum speech contribution';
   sCfg.maxcontrib = 0.8;
   sHelp.maxcontrib = 'maximum speech contribution';
-  sCfg.smooth = 9;
-  sHelp.smooth = 'number of level samples to smooth over, for gap/short speech removal';
+  sCfg.smooth = 0.09;
+  sHelp.smooth = 'smoothing time of decision output, for short gap/short speech removal';
+  sCfg.hannwnd = 1;
+  sHelp.hannwnd = 'duration of von-Hann window for filtering in intensity domain';
   sCfg = parse_keyval( sCfg, sHelp, varargin{:} );
   if isempty(sCfg)
     return;
@@ -70,8 +73,14 @@ function VAD = levels2vad( vL, varargin )
   end
   num_channels = size(vL,2);
   VAD = zeros(size(vL));
+  len_hannwnd = round(fs*sCfg.hannwnd);
+  len_smooth = round(fs*sCfg.smooth);
   for ch=1:num_channels
     levels = vL(:,ch);
+    
+    if len_hannwnd > 0
+      levels = smoothed_levels( levels, len_hannwnd );
+    end
     levels(levels<sCfg.minlevel) = [];
     l_range = quantile(levels,1-[sCfg.maxcontrib,sCfg.mincontrib]);
     idx = kmeans( levels, 2 );
@@ -81,8 +90,8 @@ function VAD = levels2vad( vL, varargin )
     threshold = min(threshold, l_range(2));
     VAD(:,ch) = vL(:,ch) > threshold;
   end
-  if sCfg.smooth > 0
-    VAD = filtfilt( ones(sCfg.smooth,1)/sCfg.smooth, 1, VAD ) >= 0.5;
+  if len_smooth > 0
+    VAD = filtfilt( ones(len_smooth,1)/len_smooth, 1, VAD ) >= 0.5;
   end
   VAD = logical(VAD);
 end
@@ -146,4 +155,39 @@ function sCfg = parse_keyval( sCfg, sHelp, varargin )
     end
     sCfg.(field) = varargin{k+1};
   end
+end
+
+function l = smoothed_levels( l, winlen )
+% smoothed_levels - calculated smoothed levels from short-term
+%                   logarithmic levels
+%
+% l = smoothed_levels( l, winlen )
+%
+% l      : short-term logarithmic (dB) levels
+% winlen : window length in blocks
+%
+% The return value is the level, smoothed with a von-Hann window of winlen
+% length. The lsmooth is time-aligned to correspond to a von-Hann
+% window symmetric around zero.
+
+% test for correct input data:
+    if (numel(size(l)) ~= 2)||(min(size(l)) ~= 1)||(prod(size(l))==1)
+        error('l must be a vector');
+    end
+    if numel(l) <= winlen
+        error('winlen must be smaller than length of l');
+    end
+    % generate von-Hann window:
+    win = hann( winlen );
+    % normalize window for enegry preservation:
+    win = win / sum(win);
+    % convert dB levels to MS levels:
+    l = 10.^(0.1*l(:));
+    padlen = floor(winlen/2);
+    % apply filter
+    lsmooth = fftfilt(win,[zeros(padlen,1)+l(1);l;zeros(winlen,1)+l(end)]);
+    % select relevant portion:
+    l = lsmooth(winlen-1+(1:numel(l)));
+    % convert back to dB levels:
+    l = 10*log10(l);
 end
