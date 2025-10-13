@@ -116,10 +116,13 @@ function [t, mSpeakerState, tovl] = get_turntakes(varargin)
     end
     t = [mSpeakerState(idx, 1), mSpeakerState(idx + 1, 1), sum(spkmat, 2)];
 
-    % Adjust end times based on subsequent speaker activity
-    for k = 1:size(t, 1)
-        speaker = t(k, 3);
-        idx0 = find(mSpeakerState(idx(k):end, speaker + 1) == 0, 1);
-        t(k, 2) = mSpeakerState(idx(k) + idx0 - 1, 1);
-    end
+    % % Adjust end times based on subsequent speaker activity
+    % for k = 1:size(t, 1)
+    %    speaker = t(k, 3);
+    %    size(idx)
+    %    size(mSpeakerState)
+    %    speaker
+    %    idx0 = find(mSpeakerState(idx(k):end, speaker + 1) == 0, 1);
+    %    t(k, 2) = mSpeakerState(idx(k) + idx0 - 1, 1);
+    % end
 end

@@ -1,4 +1,4 @@
-function [mVADout, t, vspstate, tovl] = vad2turns(vT, mVAD, maxgapdur, minsegmentdur)
+function [mVADout, tTurn, vspstate, tovl] = vad2turns(vT, mVAD, maxgapdur, minsegmentdur)
 % VAD2TURNS Processes voice activity detection data to identify speaker turns.
 %
 %   [mVADout, t, vspstate, tovl] = vad2turns(vT, mVAD, maxgapdur, minsegmentdur)
@@ -19,7 +19,8 @@ function [mVADout, t, vspstate, tovl] = vad2turns(vT, mVAD, maxgapdur, minsegmen
 %
 %   Outputs:
 %       mVADout - Refined VAD matrix with updated speech segments
-%       t - Time points of speaker turns
+%       tTurn - Time points of speaker turns; first colum is start time,
+%       second column is end time, third colum is speaker number
 %       vspstate - Speaker state information
 %       tovl - Overlap information between speaker turns
 %
@@ -43,10 +44,10 @@ function [mVADout, t, vspstate, tovl] = vad2turns(vT, mVAD, maxgapdur, minsegmen
     end
 
     % Initialize the output VAD matrix with zeros
-    mVADout = zeros(size(mVAD));
+    mVADout = false(size(mVAD));
 
     % Prepare cell array to collect arguments for get_turntakes
-    cArg = {};
+    cStartEnd = {};
 
     % Process each channel to detect and refine speech segments
     for ch = 1:size(mVAD, 2)
@@ -54,15 +55,15 @@ function [mVADout, t, vspstate, tovl] = vad2turns(vT, mVAD, maxgapdur, minsegmen
         act = mVAD(:, ch);
         
         % Ensure the first and last elements are inactive to handle edge cases
-        act(1) = 0;
-        act(end + 1) = 0;
+        act(1) = false;
+        act(end + 1) = false;
         
         % Calculate differences to find transitions
         dact = diff(act);
         
         % Find start and end times of active segments
-        tstart = vT(find(dact == 1)); % Start times where activity begins
-        tend = vT(find(dact == -1));  % End times where activity ceases
+        tstart = vT(dact == 1); % Start times where activity begins
+        tend = vT(dact == -1);  % End times where activity ceases
         
         % Remove gaps shorter than maxgapdur
         [tstart, tend] = remove_gaps(tstart, tend, maxgapdur);
@@ -77,14 +78,14 @@ function [mVADout, t, vspstate, tovl] = vad2turns(vT, mVAD, maxgapdur, minsegmen
             idx_end = find(vT == tend(k), 1);
             
             % Set the VAD to active (1) for the duration of the segment
-            mVADout(idx_start:idx_end, ch) = 1;
+            mVADout(idx_start:idx_end, ch) = true;
         end
         
         % Collect start and end times for turn-taking analysis
-        cArg{end + 1} = tstart;
-        cArg{end + 1} = tend;
+        cStartEnd{end + 1} = tstart;
+        cStartEnd{end + 1} = tend;
     end
 
     % Determine turn-taking information
-    [t, vspstate, tovl] = get_turntakes(cArg{:});
+    [tTurn, vspstate, tovl] = get_turntakes(cStartEnd{:});
 end
