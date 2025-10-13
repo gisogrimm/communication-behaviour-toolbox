@@ -1,8 +1,8 @@
-function [VAD, threshold] = levels2vad( vL, fs, varargin )
+function [VAD, vThreshold] = levels2vad( vL, fs, varargin )
 % levels2vad - Compute Voice Activity Detection (VAD) from level data
 %
 % Syntax:
-%   [VAD, VAD2] = levels2vad(vL, varargin)
+%   [VAD, vThreshold] = levels2vad(vL, fs, varargin)
 %
 % Description:
 %   This function computes a Voice Activity Detection (VAD) signal from
@@ -19,15 +19,6 @@ function [VAD, threshold] = levels2vad( vL, fs, varargin )
 % Outputs:
 %   VAD         - Binary voice activity detection signal (logical array).
 %
-% Configuration Parameters:
-%   The following parameters can be specified as key-value pairs in
-%   varargin:
-%   - 'minlevel'  - Minimum level in dB SPL. Levels below this value
-%                  are ignored in threshold estimation. Default: 25.
-%   - 'mincontrib' - Minimum speech contribution. Default: 0.1.
-%   - 'maxcontrib' - Maximum speech contribution. Default: 0.8.
-%   - 'smooth'    - Number of level samples to smooth over for noise
-%                  reduction. Default: 9.
 %
 % Notes:
 %   - If vL is a string, it is treated as the first key in varargin.
@@ -75,6 +66,7 @@ function [VAD, threshold] = levels2vad( vL, fs, varargin )
   VAD = zeros(size(vL));
   len_hannwnd = round(fs*sCfg.hannwnd);
   len_smooth = round(fs*sCfg.smooth);
+  vThreshold = zeros(1,num_channels);
   for ch=1:num_channels
     levels = vL(:,ch);
     
@@ -89,6 +81,7 @@ function [VAD, threshold] = levels2vad( vL, fs, varargin )
     threshold = max(threshold, l_range(1));
     threshold = min(threshold, l_range(2));
     VAD(:,ch) = vL(:,ch) > threshold;
+    vThreshold(ch) = threshold;
   end
   if len_smooth > 0
     VAD = filtfilt( ones(len_smooth,1)/len_smooth, 1, VAD ) >= 0.5;
