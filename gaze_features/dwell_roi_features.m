@@ -1,5 +1,4 @@
-function [start_time, end_time, mean_duration, total_duration, revisits] = ...
-         dwell_roi_features(in_roi, time, options)
+function [start_time, end_time, mean_duration, total_duration, revisits] = dwell_roi_features(in_roi, time, options)
 % DWELL_ROI_FEATURES Extracts dwell/fixation features for a region of interest
 %
 % INPUTS:
