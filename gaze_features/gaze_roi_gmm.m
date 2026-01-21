@@ -1,21 +1,21 @@
 function [gaze_in_roi, sortedMeans] = gaze_roi_gmm(gaze_az, nROI)
-% Identify gaze ROIs using GMM 
+% Identify gaze ROIs using GMM
 %
 % INPUTS:
 %   gaze_az : nSamples × 1 vector of horizontal gaze positions (azimuth)
 %   nROI    : starting number of Gaussians (e.g., 3)
 %
 % OUTPUT:
-%   gaze_in_roi : nSamples × nroi binary matrix
-%                 1 if the gaze sample belongs to that ROI, 0 otherwise
+%   gaze_in_roi : nSamples × 1  matrix
+%                 one number for each ROI, 0 otherwise
 %
 % NOTES:
 %   - The function fits a GMM starting with nROI components and reduces if
 %     it doesn't converge.
 %   - for nroi=3 Columns are assigned according to gaze azimuth:
-%       * Col1 = leftmost
-%       * Col2 = rightmost
-%       * Col3 = middle
+%       * 1 = leftmost
+%       * 2 = rightmost
+%       * 3 = middle
 %
 arguments
     gaze_az double
@@ -57,48 +57,43 @@ nFitted = max(idx);  % actual number of clusters
 
 % Cluster means
 cluster_means = gm.mu;
-    [sortedMeans, sortIdx] = sort(cluster_means);
+[sortedMeans, sortIdx] = sort(cluster_means);
 
 %% Convert to binary matrix: nSamples × nFitted
 if nROI==3
 
-%% Initialize 3-column output
-gaze_in_roi = zeros(length(gaze_az), 3);
+    %% Initialize 3-column output
+    gaze_in_roi = zeros(length(gaze_az), 1);
 
-%% Assign clusters to columns
-if nFitted == 3
-    % Sort means: left < middle < right
-    col1 = sortIdx(1); % leftmost
-    col3 = sortIdx(2); % middle
-    col2 = sortIdx(3); % rightmost
-    
-    gaze_in_roi(:,1) = idx == col1;
-    gaze_in_roi(:,2) = idx == col2;
-    gaze_in_roi(:,3) = idx == col3;
+    %% Assign clusters to columns
+    if nFitted == 3
+        % Sort means: left < middle < right
+        gaze_in_roi( sortIdx(1)) = 1;% leftmost
+        gaze_in_roi( sortIdx(2)) = 3;% middle
+        gaze_in_roi( sortIdx(3)) = 2; % rightmost
 
-elseif nFitted == 2
-    col1 = sortIdx(1); % left
-    col2 = sortIdx(2); % right
-    % Assign first two columns, third remains zeros
-    gaze_in_roi(:,1) = idx == col1;
-    gaze_in_roi(:,2) = idx == col2;
-    gaze_in_roi(:,3) = 0;
 
-elseif nFitted == 1
-    sortedMeans = cluster_means(1);
-    if sortedMeans < 0
-        gaze_in_roi(:,2) = idx == 1; % negative → col2
-    else
-        gaze_in_roi(:,1) = idx == 1; % positive → col1
+    elseif nFitted == 2
+
+        gaze_in_roi( sortIdx(1)) = 1;% left
+        gaze_in_roi( sortIdx(2)) = 2; % right
+
+
+
+    elseif nFitted == 1
+        sortedMeans = cluster_means(1);
+        if sortedMeans < 0
+            gaze_in_roi(idx) = 1; % negative → 1
+        else
+            gaze_in_roi( idx) = 2; % positive → 2
+        end
     end
-    gaze_in_roi(:,3) = 0;
-end
 else
-    gaze_in_roi = zeros(length(gaze_az), nFitted);
+    gaze_in_roi = zeros(length(gaze_az), 1);
 
-for r = 1:nFitted
-    gaze_in_roi(idx == r, r) = 1;
-end
+    for r = 1:nFitted
+        gaze_in_roi(idx == r) = r;
+    end
 end
 
 end
