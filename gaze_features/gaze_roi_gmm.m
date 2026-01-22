@@ -47,7 +47,7 @@ end
 
 %% If no GMM converged, return NaNs
 if maxTry == 0
-    gaze_in_roi = NaN(length(gaze_az),3);
+    gaze_in_roi = NaN(length(gaze_az),1);
     return;
 end
 
@@ -68,15 +68,15 @@ if nROI==3
     %% Assign clusters to columns
     if nFitted == 3
         % Sort means: left < middle < right
-        gaze_in_roi( sortIdx(1)) = 1;% leftmost
-        gaze_in_roi( sortIdx(2)) = 3;% middle
-        gaze_in_roi( sortIdx(3)) = 2; % rightmost
+        gaze_in_roi( idx==sortIdx(1)) = 1;% leftmost
+        gaze_in_roi( idx==sortIdx(2)) = 3;% middle
+        gaze_in_roi(idx== sortIdx(3)) = 2; % rightmost
 
 
     elseif nFitted == 2
 
-        gaze_in_roi( sortIdx(1)) = 1;% left
-        gaze_in_roi( sortIdx(2)) = 2; % right
+        gaze_in_roi(idx== sortIdx(1)) = 1;% left
+        gaze_in_roi( idx==sortIdx(2)) = 2; % right
 
 
 
