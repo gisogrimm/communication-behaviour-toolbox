@@ -1,4 +1,4 @@
-function [blink_idx, blink_start_idx, blink_end_idx, durations, amplitudes] = detect_blinks(eog, time, options)
+function [blink_idx, blink_start_idx, blink_end_idx, durations, rate] = detect_blinks(eog, time, options)
 % DETECT_BLINKS  Detects blink events in EOG data using amplitude and slope thresholds.
 %
 % INPUTS:
@@ -16,7 +16,7 @@ function [blink_idx, blink_start_idx, blink_end_idx, durations, amplitudes] = de
 %   blink_start_idx  - Start index of each blink
 %   blink_end_idx    - End index of each blink
 %   durations        - Duration of each blink (seconds)
-%   amplitudes       - Amplitude of each blink (µV)
+%   rate             - blink rate (per minute)
 %
 % -------------------------------------------------------------------------
 
@@ -65,9 +65,8 @@ breaks = find(diff(candidates) > 1);
 blink_start_idx = [candidates(1); candidates(breaks+1)];
 blink_end_idx   = [candidates(breaks); candidates(end)];
 
-%% Compute durations and amplitudes
+%% Compute durations
 durations = time(blink_end_idx) - time(blink_start_idx);
-amplitudes = eog(blink_end_idx) - eog(blink_start_idx);
 
 %% Remove events based on duration
 valid = durations >= options.min_blink_duration & ...
@@ -76,7 +75,7 @@ valid = durations >= options.min_blink_duration & ...
 blink_start_idx = blink_start_idx(valid);
 blink_end_idx   = blink_end_idx(valid);
 durations       = durations(valid);
-amplitudes      = amplitudes(valid);
+rate = 60*length(blink_start_idx)/(time(end)-time(start));
 
 %% Return a single list of all blink sample indices
 blink_idx = cell2mat(arrayfun(@(s,e) (s:e)', blink_start_idx, blink_end_idx, 'UniformOutput', false));

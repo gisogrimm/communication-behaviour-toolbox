@@ -40,7 +40,7 @@ if r <= 3 && c >= 1
     gaze = gaze';
 end
 
-if size(time,1)>1
+if size(time,2)>1
     time = time';
 end
 
@@ -49,7 +49,7 @@ end
 % --------------------------------------------
 
 % Euclidean distance between consecutive gaze samples (1D/2D/3D general)
-gazeDiff = sqrt(sum(diff(gaze,1,1).^2, 2));   % (n-1)×1
+gazeDiff = [0;sqrt(sum(diff(gaze,1,1).^2, 2))];   % (n-1)×1
 
 % If `time` is a scalar → it's sampling frequency
 if length(time) == 1
@@ -57,13 +57,13 @@ if length(time) == 1
     fs = time;
 else
     % Timestamps provided → compute dt
-    timeDiff = diff(time);
+    timeDiff = [0;diff(time)];
     gaze_velocity = gazeDiff ./ timeDiff;     % v = dx / dt
     fs = 1 / median(timeDiff);                % estimated sampling frequency
 end
 
 % Pad first sample (velocity undefined there)
-gaze_velocity = [0; abs(gaze_velocity)];
+gaze_velocity =  abs(gaze_velocity);
 
 
 %% -------------------------------------------
