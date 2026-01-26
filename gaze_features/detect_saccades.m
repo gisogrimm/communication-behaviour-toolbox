@@ -49,7 +49,7 @@ if r <= 3 && c >= 1
 end
 
 % Ensure time is 1×n
-if size(time,1) > 1
+if size(time,1) < 1
     time = time';
 end
 

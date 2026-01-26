@@ -23,8 +23,8 @@ function [blink_idx, blink_start_idx, blink_end_idx, durations, rate] = detect_b
 arguments
     eog double
     time double
-    options.amp_threshold double = 80
-    options.slope_threshold double = 300
+    options.amp_threshold double = 0.0008
+    options.slope_threshold double = 0.003
     options.min_blink_duration double = 0.05
     options.max_blink_duration double = 0.4
 end
@@ -56,7 +56,7 @@ if isempty(candidates)
     blink_start_idx = [];
     blink_end_idx = [];
     durations = [];
-    amplitudes = [];
+    rate = [];
     return
 end
 
@@ -75,7 +75,7 @@ valid = durations >= options.min_blink_duration & ...
 blink_start_idx = blink_start_idx(valid);
 blink_end_idx   = blink_end_idx(valid);
 durations       = durations(valid);
-rate = 60*length(blink_start_idx)/(time(end)-time(start));
+rate = 60*length(blink_start_idx)/(time(end)-time(1));
 
 %% Return a single list of all blink sample indices
 blink_idx = cell2mat(arrayfun(@(s,e) (s:e)', blink_start_idx, blink_end_idx, 'UniformOutput', false));
