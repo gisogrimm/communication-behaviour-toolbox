@@ -24,8 +24,8 @@ arguments
     time double
     options.velocityThreshold double = 100
     options.minDuration double = 0.100       % s
-    options.mergeTime double = 0.050          % s
-    options.mergeAngle double = 0.1        % degrees
+    options.mergeTime double = 0.10          % s
+    options.mergeAngle double = 2        % degrees
 end
 
 
