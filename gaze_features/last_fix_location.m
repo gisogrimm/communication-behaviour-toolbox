@@ -62,7 +62,7 @@ for t = 1:nTurn
         continue
     end
     
-    if fix_start_time(idx_fix)>turn_start(t)
+    if fix_start_time(idx_fix)<turn_start(t)
         continue
     end
     

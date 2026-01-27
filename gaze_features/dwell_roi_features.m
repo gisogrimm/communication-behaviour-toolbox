@@ -33,7 +33,6 @@ end_idx   = find(d_in_roi == -1) - 1; % falling edge
 %% Convert indices to time
 start_time = time(start_idx);
 end_time   = time(end_idx);
-durations  = end_time - start_time;
 
 
 %% Merge consecutive dwells separated by less than merge_isi
@@ -45,12 +44,11 @@ while i < length(start_time)
         end_time(i) = end_time(i+1);
         start_time(i+1) = [];
         end_time(i+1) = [];
-        durations(i) = end_time(i) - start_time(i);
-        durations(i+1:end) = durations(i+1:end); % keep remaining durations
-    else
+            else
         i = i + 1;
     end
 end
+durations  = end_time - start_time;
 
 %% Remove dwells shorter than min_dwell
 valid = durations*1000 >= options.min_dwell; % convert s -> ms
