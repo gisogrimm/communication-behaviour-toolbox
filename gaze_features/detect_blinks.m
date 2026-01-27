@@ -23,10 +23,10 @@ function [blink_idx, blink_start_idx, blink_end_idx, durations, rate] = detect_b
 arguments
     eog double
     time double
-    options.amp_threshold double = 0.0008
+    options.amp_threshold double = 0.0004
     options.slope_threshold double = 0.003
-    options.min_blink_duration double = 0.05
-    options.max_blink_duration double = 0.4
+    options.min_blink_duration double = 0.06
+    options.max_blink_duration double = 1
 end
 
 %% Normalize dimensionality

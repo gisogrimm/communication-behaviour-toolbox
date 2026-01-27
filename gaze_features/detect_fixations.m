@@ -74,10 +74,10 @@ tmp_fix_idx = gaze_velocity <= options.velocityThreshold;
 % Extract fixation periods using helper function
 [fix_start_idx, fix_end_idx] = findMovementPeriod( ...
     tmp_fix_idx, ...
-    ceil(fs * options.minDuration * 1e-3), ...   % minimum samples
+    ceil(fs * options.minDuration ), ...   % minimum samples
     1, ...                                       % allow merging
     gaze(:,1), ...                                % position (x) for merge angle
-    ceil(fs * options.mergeTime * 1e-3), ...      % merge time threshold
+    ceil(fs * options.mergeTime ), ...      % merge time threshold
     options.mergeAngle);                          % merge angle threshold
 
 % Create sample-level fixation index array
