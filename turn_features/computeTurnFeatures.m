@@ -33,6 +33,10 @@ function turns = computeTurnFeatures(turns, VADarr)
 % ------------------------------------------------------------
 transform = ~isstruct(turns); % remember whether we must convert back
 
+if nargin<2
+    error('not enought input arguments')
+end
+
 if transform
     % Number of unique talkers
     nTalker = length(unique(turns(:,3)));
@@ -45,6 +49,10 @@ if transform
     for i = nTalker
         turns(i).turns = tmpTurns(tmpTurns(:,3) == i, 1:2);
     end
+end
+
+if size(VADarr,1)>size(VADarr,2)
+    VADarr=VADarr';
 end
 
 %% ------------------------------------------------------------
